@@ -4,11 +4,12 @@
  * 2015.02.19
  */
  
-typedef struct ListItem {
-	unsigned index;
-	char* value;
-	struct ListItem* next;
-} LItem;
+#include <stdio.h>					//IO functions
+#include <stdlib.h>					//Memory functions
+#include <string.h>					//String functions
+#include <ctype.h>					//Character conversions and testing
+
+#include "LinkedList.h"
 
 struct LinkedList {
 	LItem* first;
@@ -33,16 +34,21 @@ void freeChildren(LItem* li) {
 
 List list_create(int maxsize) {
 	List l;
-	l = malloc(sizeof(List));
-	l->list = NULL;
+	l = malloc(sizeof(struct LinkedList));
+	l->first = NULL;
+	l->last = NULL;
 	l->size = 0;
 	l->capacity = maxsize;
 	return l;
 }
 
+LItem* list_getFirst(List l) {
+	return l->first;
+}
+
 void list_destroy(List l) {
 	if (l != NULL) {
-		freeChildren(l->list);
+		freeChildren(l->first);
 		free(l);
 	}
 }
@@ -62,7 +68,7 @@ void list_insert(List l, unsigned idx, char* s) {
 		l->first = li;
 		l->size = 1;
 	} else if (l->size == l->capacity) {
-		LItem first = l->first;
+		LItem* first = l->first;
 		l->first = first->next;
 		freeItem(first);
 		l->last->next = li;

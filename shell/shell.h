@@ -7,7 +7,7 @@
 #ifndef SHELL_H
 #define SHELL_H
 
-string* tokenize(string input)
-string getInput();
+List tokenize(char* input);
+char* getInput();
 
 #endif
