@@ -94,7 +94,7 @@ char** list_array(List l) {
 	return array;
 }
 
-char* list_get(unsigned i) {
+char* list_get(List l, unsigned i) {
 	LItem* li;
 	for (li = l->first; li != NULL; li = li->next) {
 		if (li->index == i) {

@@ -16,11 +16,7 @@
 	@return true if they are the same, otherwise false
 */
 _Bool streq(string a, string b) {
-	if (strcasecmp(a, b)==0) {
-		return true;
-	} else {
-		return false;
-	}
+	return strcasecmp(a, b)==0;
 }
 
 /**
@@ -30,11 +26,7 @@ _Bool streq(string a, string b) {
 	@return true if they are the same, otherwise false
 */
 _Bool streqic(string a, string b) {
-	if (strcmp(a, b)==0) {
-		return true;
-	} else {
-		return false;
-	}
+	return strcmp(a, b)==0;
 }
 
 /**

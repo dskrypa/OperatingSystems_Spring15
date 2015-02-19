@@ -22,6 +22,6 @@ void list_destroy(List l);
 unsigned list_size(List l);
 void list_insert(List l, unsigned idx, char* s);
 char** list_array(List l);
-char* list_get(unsigned index);
+char* list_get(List l, unsigned index);
 
 #endif

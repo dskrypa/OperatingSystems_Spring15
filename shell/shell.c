@@ -31,8 +31,7 @@ int main(int argc, string* argv){
 			free(input);
 			continue;
 		}
-		list_insert(h, c++, input);
-
+		
 		List arglist = tokenize(input);
 		string* args = list_array(arglist);
 		string cmd = args[0];
@@ -45,14 +44,15 @@ int main(int argc, string* argv){
 			}
 		} else if (streq(substring(cmd,0,1),"!")) {		//This will leak
 			if (streq(cmd,"!!")) {
-				printf(list_getLast(h));
+				printf("%s\n", list_getLast(h)->value);
 			} else {
-				
+				printf("xx\n");
 			}
 		} else {
 			printf("Received command: %s\n", cmd);
 		}
-
+		list_insert(h, c++, input);
+		
 		free(input);
 		list_destroy(arglist);
 		free(args);
