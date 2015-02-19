@@ -42,11 +42,14 @@ int main(int argc, string* argv){
 			for (li = list_getFirst(h); li != NULL; li = li->next) {
 				printf("%2d %s\n", li->index, li->value);
 			}
-		} else if (streq(substring(cmd,0,1),"!")) {		//This will leak
-			if (streq(cmd,"!!")) {
+		} else if (cmd[0] == '!') {
+			if (cmd[1] == '!') {
 				printf("%s\n", list_getLast(h)->value);
-			} else {
-				printf("xx\n");
+			} else if (strlen(cmd) > 1) {
+				string num = substring(cmd,1,0);
+				int n = atoi(num);
+				free(num);
+				printf("%d\n", n);
 			}
 		} else {
 			printf("Received command: %s\n", cmd);
