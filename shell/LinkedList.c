@@ -46,6 +46,10 @@ LItem* list_getFirst(List l) {
 	return l->first;
 }
 
+LItem* list_getLast(List l) {
+	return l->last;
+}
+
 void list_destroy(List l) {
 	if (l != NULL) {
 		freeChildren(l->first);
@@ -88,4 +92,15 @@ char** list_array(List l) {
 		array[i++] = li->value;
 	}
 	return array;
+}
+
+char* list_get(unsigned i) {
+	LItem* li;
+	for (li = l->first; li != NULL; li = li->next) {
+		if (li->index == i) {
+			char* retval = strdup(li->value);
+			return retval;
+		}
+	}
+	return NULL;
 }

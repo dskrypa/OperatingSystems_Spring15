@@ -11,9 +11,10 @@
 #include <unistd.h>
 
 #include "LinkedList.h"
+#include "stringUtils.h"
 #include "shell.h"
 
-int main(int argc, char** argv){
+int main(int argc, string* argv){
 	printf("DS Shell\n");
 	unsigned canRun = 1, c = 0;
 	List h = list_create(10);
@@ -25,7 +26,7 @@ int main(int argc, char** argv){
 			printf(" » ");
 		}
 		
-		char* input = getInput();
+		string input = getInput();
 		if(strlen(input) == 0){
 			free(input);
 			continue;
@@ -33,14 +34,20 @@ int main(int argc, char** argv){
 		list_insert(h, c++, input);
 
 		List arglist = tokenize(input);
-		char** args = list_array(arglist);
-		char* cmd = args[0];
-		if ((strcasecmp(cmd, "exit")==0) || (strcasecmp(cmd, "logout")==0)) {
+		string* args = list_array(arglist);
+		string cmd = args[0];
+		if (streqic(cmd, "exit") || streqic(cmd, "logout")) {
 			canRun = 0;
-		} else if (strcasecmp(cmd, "history")==0) {
+		} else if (streqic(cmd, "history")) {
 			LItem* li;
 			for (li = list_getFirst(h); li != NULL; li = li->next) {
 				printf("%2d %s\n", li->index, li->value);
+			}
+		} else if (streq(substring(cmd,0,1),"!")) {		//This will leak
+			if (streq(cmd,"!!")) {
+				printf(list_getLast(h));
+			} else {
+				
 			}
 		} else {
 			printf("Received command: %s\n", cmd);
@@ -54,9 +61,9 @@ int main(int argc, char** argv){
 	return 0;
 }
 
-List tokenize(char* input) {
+List tokenize(string input) {
 	List args = list_create(0);
-	char* token = strtok(input, " ");
+	string token = strtok(input, " ");
 	while (token != NULL) {
 		list_insert(args, 0, token);
 		token = strtok(NULL, " ");
@@ -65,13 +72,13 @@ List tokenize(char* input) {
 	return args;
 }
 
-char* getInput() {
+string getInput() {
 	char input[BUFSIZ], *p;
 	if(fgets(input, sizeof(input), stdin) != NULL){
 		if((p = strchr(input, '\n')) != NULL){
 			*p = '\0';
 		}
 	}
-	char* s = strdup(input);
+	string s = strdup(input);
 	return s;
 }
