@@ -158,5 +158,6 @@ List list_subList(List l, char* delimiter, _Bool before) {
 			}
 		}
 	}
+	list_insert(sublist, 0, NULL);
 	return sublist;
 }

@@ -93,17 +93,36 @@ void processInput(string input) {
 		if (list_contains(arglist, "|")) {
 			List a = list_subList(arglist, "|", 1);
 			List b = list_subList(arglist, "|", 0);
+			string* al = list_array(a);
+			string* bl = list_array(b);
+			pipedCommand(al, bl);
+			list_destroy(a);
+			list_destroy(b);
+			free(al);
+			free(bl);
 		} else if (list_contains(arglist, "<")) {
 			List a = list_subList(arglist, "<", 1);
 			List b = list_subList(arglist, "<", 0);
+			string* al = list_array(a);
+			string* bl = list_array(b);
+			pipedCommand(al, bl);
+			list_destroy(a);
+			list_destroy(b);
+			free(al);
+			free(bl);
 		} else if (list_contains(arglist, ">")) {
 			List a = list_subList(arglist, ">", 1);
 			List b = list_subList(arglist, ">", 0);
+			string* al = list_array(a);
+			string* bl = list_array(b);
+			pipedCommand(al, bl);
+			list_destroy(a);
+			list_destroy(b);
+			free(al);
+			free(bl);
+		} else {
+			runCommand(args);
 		}
-		
-		
-	
-		runCommand(args);
 	}
 	
 	list_destroy(arglist);
@@ -117,14 +136,41 @@ void runCommand(string* args) {
 	switch (pid = fork()) {
 		case 0:
 			status = execvp(*args, args);
+			if (status < 0) {
+				printf("Invalid command\n");
+				exit(1);
+			}
 			break;
 		default:
 			while(wait(&status) != pid){}
 			break;
 		case -1:
 			perror("ERROR: Unable to execute command.\n");
+			exit(1);
 			break;
 	}
+}
+
+void pipedCommand(string* argsA, string* argsB) {
+	int pipeID[2];
+	pipe(pipeID);
+	if (fork() == 0) {
+		close(pipeID[0]);
+		dup2(pipeID[1], STDOUT_FILENO);
+		close(pipeID[1]);
+		execvp(*argsA, argsA);
+		exit(1);
+	} else if (fork() == 0) {
+		close(pipeID[1]);
+		dup2(pipeID[0], STDIN_FILENO);
+		close(pipeID[0]);
+		execvp(*argsB, argsB);
+		exit(1);
+	}
+	close(pipeID[0]);
+	close(pipeID[1]);
+	wait(0);
+	wait(0);
 }
 
 string getInput() {
