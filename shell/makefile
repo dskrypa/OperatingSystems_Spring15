@@ -1,7 +1,7 @@
 CFLAGS=-Wall -g
 LIBS=
 OBJECTS=LinkedList.o stringUtils.o shell.o
-TARGET=shell.x
+TARGET=shell
 %.o: %.c
 	gcc -c $(CFLAGS) -o $@ $< 
 all: $(TARGET)

@@ -101,6 +101,7 @@ void processInput(string input) {
 			free(al);
 			free(bl);
 		} else if (list_contains(arglist, "<")) {
+			/*
 			List a = list_subList(arglist, "<", 1);
 			List b = list_subList(arglist, "<", 0);
 			string* al = list_array(a);
@@ -110,7 +111,9 @@ void processInput(string input) {
 			list_destroy(b);
 			free(al);
 			free(bl);
+			*/
 		} else if (list_contains(arglist, ">")) {
+			/*
 			List a = list_subList(arglist, ">", 1);
 			List b = list_subList(arglist, ">", 0);
 			string* al = list_array(a);
@@ -120,6 +123,7 @@ void processInput(string input) {
 			list_destroy(b);
 			free(al);
 			free(bl);
+			*/
 		} else {
 			runCommand(args);
 		}
