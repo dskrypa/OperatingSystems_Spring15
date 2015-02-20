@@ -9,15 +9,20 @@
 #include <string.h>					//String functions
 #include <ctype.h>					//Character conversions and testing
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include "LinkedList.h"
 #include "stringUtils.h"
 #include "shell.h"
 
+List h;
+unsigned c;
+
 int main(int argc, string* argv){
 	printf("DS Shell\n");
-	unsigned canRun = 1, c = 0;
-	List h = list_create(10);
+	unsigned canRun = 1;
+	h = list_create(10);
+	c = 0;
 	while(canRun) {
 		char wd[2048];
 		if (getcwd(wd, sizeof(wd)) != NULL) {
@@ -27,52 +32,78 @@ int main(int argc, string* argv){
 		}
 		
 		string input = getInput();
-		if(strlen(input) == 0){
+		if((strlen(input) == 0) || (input == NULL)){
 			free(input);
 			continue;
 		}
 		
-		List arglist = tokenize(input);
-		string* args = list_array(arglist);
-		string cmd = args[0];
-		if (streqic(cmd, "exit") || streqic(cmd, "logout")) {
+		if (streqic(input, "exit") || streqic(input, "logout")) {
 			canRun = 0;
-		} else if (streqic(cmd, "history")) {
-			LItem* li;
-			for (li = list_getFirst(h); li != NULL; li = li->next) {
-				printf("%2d %s\n", li->index, li->value);
-			}
-		} else if (cmd[0] == '!') {
-			if (cmd[1] == '!') {
-				printf("%s\n", list_getLast(h)->value);
-			} else if (strlen(cmd) > 1) {
-				string num = substring(cmd,1,0);
-				int n = atoi(num);
-				free(num);
-				printf("%d\n", n);
-			}
+			free(input);
 		} else {
-			printf("Received command: %s\n", cmd);
+			processInput(input);
 		}
-		list_insert(h, c++, input);
 		
-		free(input);
-		list_destroy(arglist);
-		free(args);
 	}
 	list_destroy(h);
 	return 0;
 }
 
-List tokenize(string input) {
-	List args = list_create(0);
-	string token = strtok(input, " ");
-	while (token != NULL) {
-		list_insert(args, 0, token);
-		token = strtok(NULL, " ");
+void processInput(string input) {
+	if (input[0]!='!') {
+		list_insert(h, c++, input);
 	}
-	list_insert(args, 0, NULL);
-	return args;
+	
+	List arglist = tokenize(input);
+	string* args = list_array(arglist);
+	
+	if (streqic(args[0], "history")) {
+		LItem* li;
+		for (li = list_getFirst(h); li != NULL; li = li->next) {
+			printf("%2d %s\n", li->index, li->value);
+		}
+	} else if (args[0][0] == '!') {
+		string hinput = NULL;
+		if (streq(args[0], "!!")) {
+			hinput = list_getLastVal(h);
+			if (hinput == NULL) {
+				printf("Command not found\n");
+			}
+		} else if (strlen(args[0]) > 1) {
+			string num = substring(args[0],1,0);
+			int n = atoi(num);
+			free(num);
+			hinput = list_getVal(h, n);
+			if (hinput == NULL) {
+				printf("%d: Command not found\n", n);
+			}
+		}
+		if (hinput != NULL) {
+			processInput(hinput);
+		}
+	} else {
+		runCommand(args);
+	}
+	
+	list_destroy(arglist);
+	free(args);
+	free(input);
+}
+
+void runCommand(string* args) {
+	pid_t pid;
+	int status;
+	switch (pid = fork()) {
+		case 0:
+			status = execvp(*args, args);
+			break;
+		default:
+			while(wait(&status) != pid){}
+			break;
+		case -1:
+			perror("ERROR: Unable to execute command.\n");
+			break;
+	}
 }
 
 string getInput() {
@@ -84,4 +115,15 @@ string getInput() {
 	}
 	string s = strdup(input);
 	return s;
+}
+
+List tokenize(string input) {
+	List args = list_create(0);
+	string token = strtok(input, " ");
+	while (token != NULL) {
+		list_insert(args, 0, token);
+		token = strtok(NULL, " ");
+	}
+	list_insert(args, 0, NULL);
+	return args;
 }

@@ -21,6 +21,7 @@ struct LinkedList {
 void freeItem(LItem* li) {
 	if (li != NULL) {
 		free(li->value);
+		li->next = NULL;
 		free(li);
 	}
 }
@@ -63,9 +64,9 @@ unsigned list_size(List l) {
 
 void list_insert(List l, unsigned idx, char* s) {
 	LItem* li;
-	li = malloc(sizeof(LItem));
+	li = malloc(sizeof(struct ListItem));
 	li->index = idx;
-	li->value = s == NULL ? NULL : strdup(s);
+	li->value = ((s == NULL) ? NULL : strdup(s));
 	li->next = NULL;
 	
 	if (l->first == NULL) {
@@ -94,7 +95,7 @@ char** list_array(List l) {
 	return array;
 }
 
-char* list_get(List l, unsigned i) {
+char* list_getVal(List l, unsigned i) {
 	LItem* li;
 	for (li = l->first; li != NULL; li = li->next) {
 		if (li->index == i) {
@@ -103,4 +104,20 @@ char* list_get(List l, unsigned i) {
 		}
 	}
 	return NULL;
+}
+
+char* list_getFirstVal(List l) {
+	if (l->first == NULL) {
+		return NULL;
+	}
+	char* val = strdup(l->first->value);
+	return val;
+}
+
+char* list_getLastVal(List l) {
+	if (l->last == NULL) {
+		return NULL;
+	}
+	char* val = strdup(l->last->value);
+	return val;
 }
