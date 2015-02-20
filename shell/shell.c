@@ -91,8 +91,17 @@ void processInput(string input) {
 		}
 	} else {
 		if (list_contains(arglist, "|")) {
-			printf("Contains pipe!\n");
+			List a = list_subList(arglist, "|", 1);
+			List b = list_subList(arglist, "|", 0);
+		} else if (list_contains(arglist, "<")) {
+			List a = list_subList(arglist, "<", 1);
+			List b = list_subList(arglist, "<", 0);
+		} else if (list_contains(arglist, ">")) {
+			List a = list_subList(arglist, ">", 1);
+			List b = list_subList(arglist, ">", 0);
 		}
+		
+		
 	
 		runCommand(args);
 	}

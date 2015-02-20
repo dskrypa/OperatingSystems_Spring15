@@ -131,3 +131,32 @@ _Bool list_contains(List l, char* val) {
 	}
 	return 0;
 }
+
+/*
+	Builds a new List that is a sublist of the given list, from the start to the
+	given string.  If before, returns the portion before the given string,
+	otherwise returns the portion after the given string.
+*/
+List list_subList(List l, char* delimiter, _Bool before) {
+	List sublist = list_create(0);
+	LItem* li;
+	if (before) {
+		for (li = l->first; li != NULL; li = li->next) {
+			if ((li->value != NULL) && (strcasecmp(li->value, delimiter) == 0)) {
+				break;
+			} else {
+				list_insert(sublist, 0, li->value);
+			}
+		}
+	} else {
+		_Bool past = 0;
+		for (li = l->first; li != NULL; li = li->next) {
+			if ((li->value != NULL) && (strcasecmp(li->value, delimiter) == 0)) {
+				past = 1;
+			} else if (past) {
+				list_insert(sublist, 0, li->value);
+			}
+		}
+	}
+	return sublist;
+}
