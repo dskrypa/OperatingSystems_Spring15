@@ -9,6 +9,7 @@
 #include <string.h>					//String functions
 #include <ctype.h>					//Character conversions and testing
 #include <unistd.h>
+#include <signal.h>
 #include <sys/wait.h>
 
 #include "LinkedList.h"
@@ -19,6 +20,13 @@ List h;
 unsigned c;
 
 int main(int argc, string* argv){
+	struct sigaction act;			//Define a struct to handle signals
+	act.sa_handler = SIG_IGN;		//Set the action to ignore
+	act.sa_flags = 0;				//Set no options
+	sigemptyset(&act.sa_mask);		//Initialize the sigaction mask
+	sigaction(SIGINT, &act, NULL);	//Ignore [ctrl]+[c]
+	sigaction(SIGTSTP, &act, NULL);	//Ignore [ctrl]+[z]
+
 	printf("DS Shell\n");
 	unsigned canRun = 1;
 	h = list_create(10);
@@ -82,6 +90,10 @@ void processInput(string input) {
 			processInput(hinput);
 		}
 	} else {
+		if (list_contains(arglist, "|")) {
+			printf("Contains pipe!\n");
+		}
+	
 		runCommand(args);
 	}
 	

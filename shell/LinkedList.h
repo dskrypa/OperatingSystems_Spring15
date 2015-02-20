@@ -25,6 +25,6 @@ char** list_array(List l);
 char* list_getVal(List l, unsigned index);
 char* list_getFirstVal(List l);
 char* list_getLastVal(List l);
-
+_Bool list_contains(List l, char* val);
 
 #endif

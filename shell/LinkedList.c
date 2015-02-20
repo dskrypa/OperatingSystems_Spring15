@@ -121,3 +121,13 @@ char* list_getLastVal(List l) {
 	char* val = strdup(l->last->value);
 	return val;
 }
+
+_Bool list_contains(List l, char* val) {
+	LItem* li;
+	for (li = l->first; li != NULL; li = li->next) {
+		if ((li->value != NULL) && (strcasecmp(li->value, val) == 0)) {
+			return 1;
+		}
+	}
+	return 0;
+}
