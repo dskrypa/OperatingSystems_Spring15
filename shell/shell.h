@@ -7,7 +7,10 @@
 #ifndef SHELL_H
 #define SHELL_H
 
-List tokenize(char* input);
+void processInput(string input);
+void runCommand(string* args);
+void pipedCommand(string* argsA, string* argsB);
 char* getInput();
+List tokenize(char* input);
 
 #endif

@@ -27,6 +27,7 @@
 *.i*86
 *.x86_64
 *.hex
+*.x
 
 # =========================
 # Operating System Files
@@ -76,3 +77,5 @@ $RECYCLE.BIN/
 *.lnk
 shell/discarded code.c
 pizza/pizza.cbp
+shellProgram_v2/*
+discarded code/*
