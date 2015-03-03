@@ -1,51 +1,59 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <time.h>
+/**
+ * Douglas Skrypa
+ * Version: 2015.03.02
+ * Homework 2: Pizza Parlor
+ */
 
-#define MAXSLICES 12    //Maximum number of slices that a student will eat
-#define EAT_MAX 4       //Maximum number of seconds required to eat
-#define DELIVERY_MIN 3  //Minimum number of seconds required for pizza delivery
-#define DELIVERY_MAX 10 //Maximum number of seconds required for pizza delivery
+#include "modernize.h"	//Defines bool & String
 
-int studentCount = 4;    //N
-int sliceCount = 8;      //S
-int remainingSlices = sliceCount;
-int activeStudents = studentCount;
+#include <pthread.h>	//Multithreading
+#include <semaphore.h>	//Semaphores for synchronization
+#include <stdio.h>		//IO functions
+#include <stdlib.h>		//Memory functions
+#include <unistd.h>		//Misc types
+#include <time.h>		//Sleep functions
 
-pthread_t student_threads[studentCount];
-pthread_t parlor_thread;
+#include "pizza.h"		//This program's header file
 
-enum {IN_LINE, PICKING, EATING} state[studentCount];
-pthread_cond_t student_cv[studentCount];
-pthread_mutex_t mutex;
+#define MAXSLICES 6		//Maximum number of slices that a student will eat
+#define EAT_MAX 4		//Maximum number of seconds required to eat
+#define DELIVERY_MIN 3	//Minimum number of seconds required for pizza delivery
+#define DELIVERY_MAX 10	//Maximum number of seconds required for pizza delivery
 
-enum {AVAILABLE, EMPTY, ORDERED, IN_TRANSIT, DONE} pizza;
-pthread_cond_t parlor_cv;
+int studentCount, sliceCount;
+int remainingSlices, activeStudents;
+sem_t slice, order;
+bool orderPlaced;
 
-int main() {
-	//Initialize mutex
-	if (pthread_mutex_init(&mutex, NULL) != 0) {
-		errexit("Unable to create mutex.\n");
+int main(int argc, String* argv) {
+	//Input validation
+	if (argc < 3) {
+		errexit("Too few arguments provided.\n");
+	}
+	sscanf(argv[1], "%d", &studentCount);
+	if (studentCount < 1) {
+		errexit("Invalid argument for number of students.\n");
+	}
+	sscanf(argv[2], "%d", &sliceCount);
+	if (sliceCount < 1) {
+		errexit("Invalid argument for number of slices.\n");
 	}
 
-	//Initialize pizza parlor vars
-	pizza = AVAILABLE;
-	if (pthread_cond_init(&parlor_cv, NULL) != 0) {
-		errexit("Unable to create pizza parlor condition variable.\n");
-	}
+	printf("There are %d students studying.\n", studentCount);
+	printf("There is a pizza with %d slices available.\n", sliceCount);
 
-	//Initialize student vars
-	int i;
-	for (i = 0; i < studentCount; i++) {
-		state[i] = IN_LINE;
-		if (pthread_cond_init(&(student_cv[i]), NULL) != 0) {
-			errexit("Unable to create student condition variable.\n");
-		}
-	}
+	//Init variables
+	orderPlaced = false;
+	remainingSlices = sliceCount;
+	activeStudents = studentCount;
+	
+	pthread_t student_threads[studentCount];
+	pthread_t parlor_thread;
+	
+	sem_init(&slice, 0, 1);		//Initialize semaphore for slice picking
+	sem_init(&order, 0, 1);		//Initialize semaphore for pizza ordering
 
-	srand(time());      //Seeds random number generator
+	srand(time(NULL));      	//Seeds random number generator
 
 	//Declare & initialize thread attributes
 	pthread_attr_t attr;
@@ -56,6 +64,7 @@ int main() {
 	if (pthread_create(&parlor_thread, &attr, pizzaParlor, NULL) != 0) {
 		errexit("Unable to create pizza parlor thread.\n");
 	}
+	int i;
 	for (i = 0; i < studentCount; i++) {
 		long t = (long) i;
 		if (pthread_create(&(student_threads[i]), &attr, student, (void*)t) != 0) {
@@ -64,9 +73,8 @@ int main() {
 	}
 
 	//Join threads
-	if (pthread_join(&parlor_thread, NULL) != 0) {
+	if (pthread_join(parlor_thread, NULL) != 0) {
 		errexit("Unable to join pizza parlor thread.\n");
-		exit(1);
 	}
 	for (i = 0; i < studentCount; i++) {
 		if (pthread_join(student_threads[i], NULL) != 0) {
@@ -77,90 +85,100 @@ int main() {
 	//Cleanup
 	printf("The students are done studying & the pizza parlor is closed.\n");
 	pthread_attr_destroy(&attr);
-	pthread_mutex_destroy(&mutex);
-	pthread_cond_destroy(&parlor_cv);
-	for (i = 0; i < studentCount; i++) {
-		pthread_cond_destroy(&(student_cv[i]))
-	}
+	sem_destroy(&slice);
+	sem_destroy(&order);
 	pthread_exit(NULL);
 	return 0;
 }
 
+/**
+	Student thread
+	@param threadid the ID for this student thread
+*/
 void* student(void* threadid) {
 	long tid = (long) threadid;
-	//Iterate for a random number of slices of pizza
-	int i;
-	for (i = 0 i < rand()%MAXSLICES+1; i++) {
-        take_slice((int)tid);		//Get in line to take a slice of pizza
-        sleep(rand()%EAT_MAX+1);	//Eat the slice of pizza
-	   //i'm hungry
-	   //wait in line for pizza
-	   //get pizza
-	   //if i took the last slice, order more
-	   //eat pizza
-
-	}
-	//Done studying
-	printf("S%d: Done studying.\n", tid);
-	activeStudents--;
-	if (activeStudents == 0) {
-		pizza = DONE;
-	}
-	pthread_exit(NULL);
-}
-
-void* pizzaParlor() {
-	while (pizza != DONE) {
-		if (pizza = ORDERED) {
-			make_pizza();
+	int slices = 0;
+	int lastSlices = -1;
+	int maxSlices = rand()%MAXSLICES+1;
+	//Loop while student hasn't eaten their fill of pizza
+	while (slices < maxSlices) {
+		if (lastSlices != slices) {	//Print hunger message once per slice
+			lastSlices = slices;
+			printf("S%d: I'm hungry!\n", (int)tid);
+		}
+		
+		sem_wait(&slice);			//Wait for lock on pizza
+			int rem = get_slice();		//Get a slice, if possible
+		sem_post(&slice);			//Release lock on pizza
+		
+		if (rem == -1) {			//If there were no available slices
+			sleep(1);					//Wait before checking aagin
+		} else {					//Otherwise, we got a slice
+			printf("S%d: Got a slice; there are %d left.\n", (int)tid, rem);
+			slices++;					//Increment the number eaten
+			if (rem == 0) {				//If we got the last slice
+				sem_wait(&order);			//Wait for lock on order
+					placeOrder();				//Place order
+					printf("S%d: I ordered another pizza.\n", (int)tid);
+				sem_post(&order);			//Release lock on order
+			}
+			sleep(rand()%EAT_MAX+1);	//Eat the slice of pizza
 		}
 	}
-	pthread_exit(NULL);
-}
-
-void make_pizza() {
-	sleep(rand()%DELIVERY_MAX+DELIVERY_MIN);
-	printf("Pizza Parlor: Delivered a fresh pizza with %d slices.\n", sliceCount);
-	remainingSlices = sliceCount;
-	pizza = AVAILABLE;
+	//Ate as many slices as necessary
+	printf("S%ld: Done studying.\n", tid);
+	activeStudents--;				//Decrement the number of active students
+	pthread_exit(NULL);				//Terminate the thread
 }
 
 /**
-	Synchronized function for taking a slice of pizza
-	@param i the ID number of the student attempting to take a slice of pizza
+	Place an order with the pizzaParlor for a new pizza
 */
-void take_slice(int i) {
-	pthread_mutex_lock(&mutex);
-	state[i] = IN_LINE;					//Student i is in line for a slice of pizza
-	printf("S%d: I'm hungry.\n", i);	//Announce status
-	//Attempt to obtain lock on pizza
-	test(i);
-	while (state[i] != PICKING) {
-		pthread_cond_wait(&(student_cv[i]), &mutex);
-	}
-	//Obtained lock on pizza
-	remainingSlices -= 1;				//Decrement number of slices remaining
-	printf("S%d: I got a slice; there are %d slices left.\n", i, remainingSlices);	//Announce status
-	//Update pizza's status
-	if (remainingSlices == 0) {
-		pizza = ORDERED;
-		printf("S%d: I ordered another pizza.\n", i);
-	}
-	//Release lock on pizza
-	pthread_mutex_unlock(&mutex);
+void placeOrder() {
+	orderPlaced = true;
 }
 
-void test(int i) {
-	if ((state[(i-1+studentCount)%studentCount] != PICKING)
-		&& (state[i] == IN_LINE)
-		&& (state[(i+1)%studentCount] != PICKING)
-		&& (pizza == AVAILABLE)
-	){
-		state[i] = PICKING;
-		pthread_cond_signal(&(student_cv[i]));
+/**
+	Pizza Parlor thread
+*/
+void* pizzaParlor() {
+	while (activeStudents > 0) {	//Loop while there are students studying
+		if (orderPlaced) {			//Catch an incoming order
+			orderPlaced = false;
+			make_pizza();			//Fulfill the order
+		}
 	}
+	pthread_exit(NULL);				//Terminate the thread
 }
 
+/**
+	Make a pizza
+	Spend a random (bounded) amount of time sleeping to simulate delivery time,
+	then refresh the number of slices that are available.
+*/
+void make_pizza() {
+	sleep(rand()%DELIVERY_MAX+DELIVERY_MIN);
+	sem_wait(&slice);			//Wait for lock on pizza
+		printf("Pizza Parlor: Delivered a fresh pizza with %d slices.\n", sliceCount);
+		remainingSlices = sliceCount;
+	sem_post(&slice);			//Release lock on pizza
+}
+
+/**
+	Get a slice of pizza
+	@return the number of slices remaining or -1 if there were no slices available
+*/
+int get_slice() {
+	if (remainingSlices > 0) {
+		remainingSlices--;
+		return remainingSlices;
+	}
+	return -1;
+}
+
+/**
+	Shortcut function for exiting after printing an error message.
+*/
 void errexit(char* msg) {
 	perror(msg);
 	exit(1);
