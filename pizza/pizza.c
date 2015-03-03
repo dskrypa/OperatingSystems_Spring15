@@ -1,6 +1,6 @@
 /**
  * Douglas Skrypa
- * Version: 2015.03.02
+ * Version: 2015.03.03
  * Homework 2: Pizza Parlor
  */
 
@@ -17,12 +17,14 @@
 
 #define MAXSLICES 6		//Maximum number of slices that a student will eat
 #define EAT_MAX 4		//Maximum number of seconds required to eat
-#define DELIVERY_MIN 3	//Minimum number of seconds required for pizza delivery
-#define DELIVERY_MAX 10	//Maximum number of seconds required for pizza delivery
+#define DELIVERY_MIN 2	//Minimum number of seconds required for pizza delivery
+#define DELIVERY_MAX 5	//Maximum number of seconds required for pizza delivery
 
 int studentCount, sliceCount;
 int remainingSlices, activeStudents;
-sem_t slice, order;
+enum {PIZZA,ORDER,STUDENTS};	//Enum for lock semaphore clarity
+sem_t locks[3];					//Lock semaphores for synchronized variables
+
 bool orderPlaced;
 
 int main(int argc, String* argv) {
@@ -46,12 +48,13 @@ int main(int argc, String* argv) {
 	orderPlaced = false;
 	remainingSlices = sliceCount;
 	activeStudents = studentCount;
-	
 	pthread_t student_threads[studentCount];
 	pthread_t parlor_thread;
 	
-	sem_init(&slice, 0, 1);		//Initialize semaphore for slice picking
-	sem_init(&order, 0, 1);		//Initialize semaphore for pizza ordering
+	int i;	//Initialize semaphores for locks
+	for (i = 0; i < 3; i++) {
+		sem_init(&(locks[i]), 0, 1);
+	}
 
 	srand(time(NULL));      	//Seeds random number generator
 
@@ -64,7 +67,6 @@ int main(int argc, String* argv) {
 	if (pthread_create(&parlor_thread, &attr, pizzaParlor, NULL) != 0) {
 		errexit("Unable to create pizza parlor thread.\n");
 	}
-	int i;
 	for (i = 0; i < studentCount; i++) {
 		long t = (long) i;
 		if (pthread_create(&(student_threads[i]), &attr, student, (void*)t) != 0) {
@@ -85,8 +87,9 @@ int main(int argc, String* argv) {
 	//Cleanup
 	printf("The students are done studying & the pizza parlor is closed.\n");
 	pthread_attr_destroy(&attr);
-	sem_destroy(&slice);
-	sem_destroy(&order);
+	for (i = 0; i < 3; i++) {
+		sem_destroy(&(locks[i]));
+	}
 	pthread_exit(NULL);
 	return 0;
 }
@@ -106,45 +109,66 @@ void* student(void* threadid) {
 			lastSlices = slices;
 			printf("S%d: I'm hungry!\n", (int)tid);
 		}
-		
-		sem_wait(&slice);			//Wait for lock on pizza
-			int rem = get_slice();		//Get a slice, if possible
-		sem_post(&slice);			//Release lock on pizza
-		
+		int rem = get_slice();		//Get a slice, if possible
 		if (rem == -1) {			//If there were no available slices
 			sleep(1);					//Wait before checking aagin
 		} else {					//Otherwise, we got a slice
 			printf("S%d: Got a slice; there are %d left.\n", (int)tid, rem);
 			slices++;					//Increment the number eaten
 			if (rem == 0) {				//If we got the last slice
-				sem_wait(&order);			//Wait for lock on order
-					placeOrder();				//Place order
-					printf("S%d: I ordered another pizza.\n", (int)tid);
-				sem_post(&order);			//Release lock on order
+				placeOrder();				//Place order
+				printf("S%d: I ordered another pizza.\n", (int)tid);
 			}
 			sleep(rand()%EAT_MAX+1);	//Eat the slice of pizza
 		}
 	}
 	//Ate as many slices as necessary
-	printf("S%ld: Done studying.\n", tid);
-	activeStudents--;				//Decrement the number of active students
+	printf("S%ld: I'm done studying.\n", tid);
+	sem_wait(&(locks[STUDENTS]));	//Wait for lock on students
+		activeStudents--;				//Decrement the number of active students
+	sem_post(&(locks[STUDENTS]));	//Release lock on students
 	pthread_exit(NULL);				//Terminate the thread
 }
 
 /**
-	Place an order with the pizzaParlor for a new pizza
+	Thread-safe function to place an order for a new pizza
 */
 void placeOrder() {
-	orderPlaced = true;
+	sem_wait(&(locks[ORDER]));	//Wait for lock on order status
+		orderPlaced = true;
+	sem_post(&(locks[ORDER]));	//Release lock on order status
+}
+
+/**
+	Thread-safe check for order status
+	@return true if an order has ben placed, false otherwise
+*/
+bool hasOrder() {
+	bool ordered;
+	sem_wait(&(locks[ORDER]));	//Wait for lock on order status
+		ordered = orderPlaced;
+	sem_post(&(locks[ORDER]));	//Release lock on order status
+	return ordered;
+}
+
+/**
+	Thread-safe check for the number of students that are active
+	@return true if activeStudents > 0, false otherwise
+*/
+bool stillActive() {
+	bool active;
+	sem_wait(&(locks[STUDENTS]));	//Wait for lock on students
+		active = activeStudents > 0;
+	sem_post(&(locks[STUDENTS]));	//Release lock on students
+	return active;
 }
 
 /**
 	Pizza Parlor thread
 */
 void* pizzaParlor() {
-	while (activeStudents > 0) {	//Loop while there are students studying
-		if (orderPlaced) {			//Catch an incoming order
-			orderPlaced = false;
+	while (stillActive()) {	//Loop while there are students studying
+		if (hasOrder()) {			//Catch an incoming order
 			make_pizza();			//Fulfill the order
 		}
 	}
@@ -152,28 +176,35 @@ void* pizzaParlor() {
 }
 
 /**
-	Make a pizza
+	Thread-safe function to simulate cooking / delivering a pizza
 	Spend a random (bounded) amount of time sleeping to simulate delivery time,
 	then refresh the number of slices that are available.
 */
 void make_pizza() {
+	sem_wait(&(locks[ORDER]));	//Wait for lock on order status
+		orderPlaced = false;
+	sem_post(&(locks[ORDER]));	//Release lock on order status
+	
 	sleep(rand()%DELIVERY_MAX+DELIVERY_MIN);
-	sem_wait(&slice);			//Wait for lock on pizza
+	sem_wait(&(locks[PIZZA]));	//Wait for lock on pizza
 		printf("Pizza Parlor: Delivered a fresh pizza with %d slices.\n", sliceCount);
 		remainingSlices = sliceCount;
-	sem_post(&slice);			//Release lock on pizza
+	sem_post(&(locks[PIZZA]));	//Release lock on pizza
 }
 
 /**
-	Get a slice of pizza
+	Thread-safe function to get a slice of pizza
 	@return the number of slices remaining or -1 if there were no slices available
 */
 int get_slice() {
-	if (remainingSlices > 0) {
-		remainingSlices--;
-		return remainingSlices;
-	}
-	return -1;
+	int retval = -1;
+	sem_wait(&(locks[PIZZA]));	//Wait for lock on pizza
+		if (remainingSlices > 0) {
+			remainingSlices--;
+			retval = remainingSlices;
+		}
+	sem_post(&(locks[PIZZA]));	//Release lock on pizza
+	return retval;
 }
 
 /**
