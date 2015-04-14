@@ -7,6 +7,10 @@
 #ifndef PAGING_H
 #define PAGING_H
 
+void printState(int page, int* frame, int framec, bool fault, int framesFilled);
+int use_fifo(int* refStream, int refc, int framec);
+int use_lru(int* refStream, int refc, int framec);
+int use_opt(int* refStream, int refc, int framec);
 List tokenize(String input);
 String getInput();
 
