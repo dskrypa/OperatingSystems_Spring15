@@ -106,7 +106,7 @@ int use_fifo(int* refStream, int refc, int framec) {
 	for (c = 0; c < refc; c++) {
 		bool hit = false;
 		int f;	//Determine if there is a hit or fault
-		for (f = 0; (f < c) && (f < framec); f++) {
+		for (f = 0; (f < faults) && (f < framec); f++) {
 			if (frame[f] == refStream[c]) {
 				hit = true;
 				break;
@@ -143,7 +143,7 @@ int use_lru(int* refStream, int refc, int framec) {
 	for (c = 0; c < refc; c++) {
 		bool hit = false;
 		int f;	//Determine if there is a hit or fault & increment distances
-		for (f = 0; (f < c) && (f < framec); f++) {
+		for (f = 0; (f < faults) && (f < framec); f++) {
 			if (frame[f] == refStream[c]) {
 				hit = true;
 				prev[f] = 0;
@@ -200,7 +200,7 @@ int use_opt(int* refStream, int refc, int framec) {
 	
 		bool hit = false;
 		int f;	//Determine if there is a hit or fault & decrement distances
-		for (f = 0; (f < c) && (f < framec); f++) {
+		for (f = 0; (f < faults) && (f < framec); f++) {
 			if (frame[f] == refStream[c]) {
 				hit = true;
 				next[f] = nextp;
