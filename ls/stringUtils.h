@@ -1,11 +1,19 @@
 /**
  * Douglas Skrypa
- * Version: 2015.04.14
+ * Version: 2015.05.04
  * A collection of various utilities for working with strings
  */
 
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
+
+/**
+	Concatenates multiple Strings
+	@param argc the number of strings that will be concatenated
+	@return the result of adding each subsequent string to the right of the
+	previous string
+*/
+String concat(int argc, ...);
 
 /**
 	Compares two strings

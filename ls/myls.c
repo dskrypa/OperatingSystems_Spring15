@@ -9,7 +9,9 @@
 
 #include <stdio.h>					//IO functions
 #include <stdlib.h>					//Memory functions; exit()
+//#include <string.h>					//String functions
 #include <unistd.h>					//Misc symbolic constants, types, and functions
+#include <sys/stat.h>				//File information
 #include <errno.h>					//Access to stderr stream
 #include <dirent.h>					//Directory access
 
@@ -44,7 +46,11 @@ int main(int argc, String* argv) {
 	if (argc == 1) {
 		ls_plain(cwd);
 	} else if (argc == 2) {
-		fprintf(stderr,"Error: args not yet supported.\n");
+		if (streq("-i", argv[1])) {
+			ls_i(cwd);
+		} else {
+			fprintf(stderr,"Error: Invalid argument for %s: %s\n", argv[0], argv[1]);
+		}
 	} else {
 		fprintf(stderr,"Error: multiple args not yet supported.\n");
 	}
@@ -90,6 +96,19 @@ void ls_plain(String path) {
 */
 void ls_i(String path) {
 	DIR* dir = getDir(path);
+	
+	struct dirent* dent;
+	while ((dent = readdir(dir)) != NULL) {										//Iterate through all items in the current directory
+		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {
+			
+			String fname = concat(3, path, "/", dent->d_name);
+			printf("%s\n", fname);
+			free(fname);
+			
+//			printf("%s  ", dent->d_name);										//If the file name is not . or .., then print it
+		}
+	}
+	printf("\n");
 	
 	if (closedir(dir) == -1) {
 		fprintf(stderr,"Encountered error while closing %s\n", path);

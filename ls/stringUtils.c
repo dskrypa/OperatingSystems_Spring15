@@ -6,10 +6,39 @@
 
 #include <string.h>					//String functions
 #include <ctype.h>					//Character conversions and testing
+#include <stdarg.h>					//Allow variable number of arguments
 
 #include "modernize.h"				//Defines bool & String
 
 #include "stringUtils.h"
+
+/**
+	Concatenates multiple Strings
+	@param argc the number of strings that will be concatenated
+	@return the result of adding each subsequent string to the right of the
+	previous string
+*/
+String concat(int argc, ...) {
+	va_list args;
+	int len = 0;
+	String arg[argc];
+	
+	va_start(args, argc);				//Initialize the variable number of args
+	int i;
+	for (i = 0; i < argc; i++) {
+		arg[i] = va_arg(args, String);	//Store the argument
+		len += strlen(arg[i]);			//Increment the length of the new String
+	}
+	va_end(args);						//Terminate the variable number of args
+	
+	char sb[len];						//Init a char array to fit the string
+	strcpy(sb, arg[0]);					//Copy the first element in (important!)
+	for (i = 1; i < argc; i++) {
+		strcat(sb, arg[i]);				//Use strcat for the rest
+	}
+	
+	return strdup(sb);					//Duplicate & return the new pointer
+}
 
 /**
 	Compares two strings
