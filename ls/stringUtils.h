@@ -8,6 +8,13 @@
 #define STRINGUTILS_H
 
 /**
+	Sorts the given array of Strings in place alphabetically
+	@param eles the number of elements in the given array
+	@param arr an array of Strings
+*/
+void sort_arr(int eles, String* arr);
+
+/**
 	Concatenates multiple Strings
 	@param argc the number of strings that will be concatenated
 	@return the result of adding each subsequent string to the right of the
@@ -47,5 +54,12 @@ String strip(String s);
 	@return the portion of s between from and to
 */
 String substring(String s, int from, int to);
+
+/**
+	Free all of the elements of the given String array, and the array itself.
+	@param arrc the number of elements in the array
+	@param arr the array to be freed
+*/
+void free_arr(unsigned arrc, String* arr);
 
 #endif

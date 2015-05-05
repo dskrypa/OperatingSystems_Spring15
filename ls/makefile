@@ -3,7 +3,7 @@ LIBS=
 OBJECTS=stringUtils.o myls.o
 TARGET=myls
 %.o: %.c
-	gcc -c $(CFLAGS) -o $@ $< 
+	gcc -c $(CFLAGS) -o $@ $<
 all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	gcc -o $(TARGET) $(OBJECTS) $(LIBS)

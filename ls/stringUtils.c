@@ -4,6 +4,7 @@
  * A collection of various utilities for working with strings
  */
 
+#include <stdlib.h>					//Memory functions
 #include <string.h>					//String functions
 #include <ctype.h>					//Character conversions and testing
 #include <stdarg.h>					//Allow variable number of arguments
@@ -11,6 +12,25 @@
 #include "modernize.h"				//Defines bool & String
 
 #include "stringUtils.h"
+
+/**
+	Sorts the given array of Strings in place alphabetically
+	@param eles the number of elements in the given array
+	@param arr an array of Strings
+*/
+void sort_arr(int eles, String* arr) {
+	int i;
+	for (i = 1; i < eles; i++) {
+		int j;
+		for (j = 1; j < eles-1; j++) {
+			if (strcmp(arr[j-1], arr[j]) > 0) {
+				String temp = arr[j-1];
+				arr[j-1] = arr[j];
+				arr[j] = temp;
+			}
+		}
+	}
+}
 
 /**
 	Concatenates multiple Strings
@@ -127,4 +147,17 @@ String substring(String s, int from, int to){
 	
 	String news = strdup(building);
 	return news;							//Return the new string
+}
+
+/**
+	Free all of the elements of the given String array, and the array itself.
+	@param arrc the number of elements in the array
+	@param arr the array to be freed
+*/
+void free_arr(unsigned arrc, String* arr) {
+	int i;
+	for (i = 0; i < arrc; i++) {
+		free(arr[i]);
+	}
+	free(arr);
 }
