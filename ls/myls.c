@@ -2,9 +2,6 @@
  * Douglas Skrypa
  * Version: 2015.05.04
  * Homework 6: Implementing ls
- 
- DUE: Tuesday May 5th @ 11:55 PM
- 
  */
 
 #include <unistd.h>					//Misc symbolic constants, types, and functions
@@ -15,32 +12,14 @@
 #include <string.h>					//String functions
 #include <errno.h>					//Access to stderr stream
 #include <dirent.h>					//Directory access
-#include <time.h>
-#include <pwd.h>
-#include <grp.h>
+#include <time.h>					//Time formatting
+#include <pwd.h>					//User info
+#include <grp.h>					//Group info
 
 #include "modernize.h"				//Defines bool & String
 #include "stringUtils.h"			//String comparison & manipulation
 
 #include "myls.h"
-
-/*
-ls			list the names of files and directories in the current directory
-ls -i		list the names and i-node numbers of files and directories in the current directory
-ls -l		list the names of files and directories in long format
-ls -R		recursively list the names of all files and directories in the current directory; that is, the command is also applied to the directories within the current directory, the directories within those directories, and so forth
-
-System calls:
-opendir()		open a directory
-readdir()		read a directory entry
-closedir()		close a directory
-rewinddir()		reset directory
-getcwd()		get current working directory
-chdir()			change current working directory
-stat()			obtain file information
-lstat()			obtain file information
-ftsat()			obtain file information
-*/
 
 int main(int argc, String* argv) {
 	unsigned cwd_buffer = 4096;
