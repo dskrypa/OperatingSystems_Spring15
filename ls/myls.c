@@ -54,6 +54,8 @@ int main(int argc, String* argv) {
 			ls_i(cwd);
 		} else if (streq("-l", argv[1])) {
 			ls_l(cwd);
+		} else if (streq("-R", argv[1])) {
+			ls_R(cwd, true, NULL);
 		} else {
 			fprintf(stderr,"Error: Invalid argument for %s: %s\n", argv[0], argv[1]);
 			return 0;
@@ -88,16 +90,24 @@ DIR* getDir(String path) {
 void ls_plain(String path) {
 	DIR* dir = getDir(path);
 	
+	unsigned long fc = count_files(path);
+	String* farr = malloc(sizeof(String) * fc);									//Allocate memory for the file/dir name arrays
+	
 	int i = 0;
 	struct dirent* dent;	
 	while ((dent = readdir(dir)) != NULL) {										//Iterate through all items in the current directory
-		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {			//Print if file name is not "." or ".."
-			printf("%s  ", dent->d_name);
-			if (++i % 7 == 0) {
-				printf("\n");
-			}
+		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {			//Store if file name is not "." or ".."
+			farr[i++] = strdup(dent->d_name);
 		}
 	}
+	
+	if (fc > 0) {
+		sort_arr(fc, farr);														//Sort the list of file names
+		for (i = 0; i < fc; i++) {												//Then print them
+			printf("%s  ", farr[i]);
+		}
+	}
+	free_arr(fc, farr);
 	printf("\n");
 	
 	if (closedir(dir) == -1) {
@@ -114,26 +124,36 @@ void ls_plain(String path) {
 void ls_i(String path) {
 	DIR* dir = getDir(path);
 	
+	unsigned long fc = count_files(path);
+	String* farr = malloc(sizeof(String) * fc);									//Allocate memory for the file/dir name arrays
+	
 	int i = 0;
 	struct dirent* dent;
 	while ((dent = readdir(dir)) != NULL) {										//Iterate through all items in the current directory
-		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {			//Print if file name is not "." or ".."
-			String fname = concat(3, path, "/", dent->d_name);					//Generate the full path
-			
+		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {			//Store if file name is not "." or ".."
+			farr[i++] = strdup(dent->d_name);
+		}
+	}
+	
+	if (fc > 0) {
+		sort_arr(fc, farr);														//Sort the list of file names
+		for (i = 0; i < fc; i++) {												//Then print them
+			String fname = concat(3, path, "/", farr[i]);						//Generate the full path
 			struct stat sb;
 			if (stat(fname, &sb) == -1) {										//Retrieve the file's stat info
-				fprintf(stderr, "Error: Unable to stat %s\n", fname);
+				fprintf(stderr, "Error: Unable to stat %s\n", fname);			//Print error and exit on error
 				free(fname);
 				exit(0);
 			}
 			free(fname);
 			
-			printf("%ld %s  ", (long) sb.st_ino, dent->d_name);
-			if (++i % 5 == 0) {
+			printf("%ld %s  ", (long) sb.st_ino, farr[i]);
+			if ((i+1) % 5 == 0) {
 				printf("\n");
 			}
 		}
 	}
+	free_arr(fc, farr);
 	printf("\n");
 	
 	if (closedir(dir) == -1) {
@@ -157,7 +177,7 @@ void ls_l(String path) {
 	struct dirent* dent;
 	while ((dent = readdir(dir)) != NULL) {										//Iterate through all items in the current directory
 		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {			//Print if file name is not "." or ".."
-			arr_a[i] = dent->d_name;
+			arr_a[i] = strdup(dent->d_name);
 			arr_b[i++] = concat(3, path, "/", dent->d_name);					//Generate the full path
 		}
 	}
@@ -198,7 +218,7 @@ void ls_l(String path) {
 		free(prm);																//Free the permissions String
 	}
 	
-	free(arr_a);																//Free the file name arrays
+	free_arr(fc, arr_a);														//Free the file name arrays
 	free_arr(fc, arr_b);
 	
 	if (closedir(dir) == -1) {
@@ -213,9 +233,71 @@ void ls_l(String path) {
 	the current directory, the directories within those directories, and so
 	forth.
 	@param path the full path of the directory to examine
+	@param first true if this is the first call to ls_R
+	@param header header to use for printing the directory contents
 */
-void ls_R(String path) {
+void ls_R(String path, bool first, String header) {
 	DIR* dir = getDir(path);
+	
+	unsigned long dc = count_dirs(path);
+	unsigned long fc = count_files(path);
+	
+	String* farr = malloc(sizeof(String) * fc);									//Allocate memory for the file/dir name arrays
+	String* darr = malloc(sizeof(String) * dc);
+	
+	int i = 0, d = 0;
+	struct dirent* dent;
+	while ((dent = readdir(dir)) != NULL) {										//Iterate through all items in the current directory
+		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {			//Print if file name is not "." or ".."
+			String fname = concat(3, path, "/", dent->d_name);					//Generate the full path
+			
+			struct stat sb;
+			if (stat(fname, &sb) == -1) {										//Retrieve the file's stat info
+				fprintf(stderr, "Error: Unable to stat %s\n", fname);			//Print error and exit on error
+				free(fname);
+				exit(0);
+			}
+			
+			if (S_ISDIR(sb.st_mode)) {
+				darr[d++] = strdup(dent->d_name);
+			}
+			farr[i++] = strdup(dent->d_name);
+			free(fname);
+		}
+	}
+	
+	if (first) {																//Print the header
+		printf(".:\n");
+	} else {
+		printf("\n%s:\n", header);
+	}
+	if (fc > 0) {
+		sort_arr(fc, farr);														//Sort the list of file names
+		for (i = 0; i < fc; i++) {
+			printf("%s  ", farr[i]);
+		}
+	}
+	free_arr(fc, farr);
+	printf("\n");
+	
+	if (dc > 0) {
+		sort_arr(dc, darr);														//Sort the list of dir names
+		for (i = 0; i < dc; i++) {
+			String fname = concat(3, path, "/", darr[i]);						//Generate the full path
+			
+			String hdr;															//Generate the header
+			if (first) {
+				hdr = concat(2, "./", darr[i]);
+			} else {
+				hdr = concat(3, header, "/", darr[i]);
+			}
+			
+			ls_R(fname, false, hdr);											//Recursive call for subfolder
+			free(fname);														//Free concatenated strings
+			free(hdr);
+		}
+	}	
+	free_arr(dc, darr);
 	
 	if (closedir(dir) == -1) {
 		fprintf(stderr,"Encountered error while closing %s\n", path);
@@ -255,8 +337,44 @@ unsigned long count_files(String path) {
 	unsigned long i = 0;
 	struct dirent* dent;	
 	while ((dent = readdir(dir)) != NULL) {										//Iterate through all items in the current directory
-		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {			//Print if file name is not "." or ".."
+		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {			//Count if file name is not "." or ".."
 			i++;
+		}
+	}
+	
+	if (closedir(dir) == -1) {
+		fprintf(stderr,"Encountered error while closing %s\n", path);
+		exit(0);
+	}
+	
+	return i;
+}
+
+/**
+	Counts the number of directories in the given path.
+	@param path the file path to examine
+	@return the number of directories that exist in the given directory
+*/
+unsigned long count_dirs(String path) {
+	DIR* dir = getDir(path);
+	
+	unsigned long i = 0;
+	struct dirent* dent;	
+	while ((dent = readdir(dir)) != NULL) {										//Iterate through all items in the current directory
+		if (!streq(".", dent->d_name) && !streq("..", dent->d_name)) {			//Count if file name is not "." or ".."
+			String fname = concat(3, path, "/", dent->d_name);					//Generate the full path
+			
+			struct stat sb;
+			if (stat(fname, &sb) == -1) {										//Retrieve the file's stat info
+				fprintf(stderr, "Error: Unable to stat %s\n", fname);			//Print error and exit on error
+				free(fname);
+				exit(0);
+			}
+			free(fname);
+			
+			if (S_ISDIR(sb.st_mode)) {
+				i++;
+			}
 		}
 	}
 	

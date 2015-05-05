@@ -14,22 +14,19 @@
 #include "stringUtils.h"
 
 /**
-	Sorts the given array of Strings in place alphabetically
+	Comparison function for qsort
+*/
+static int str_compare(const void* a, const void* b) {
+	return strcmp(*(const char**) a, *(const char**) b);
+}
+
+/**
+	Sorts the given array of Strings in place alphabetically.
 	@param eles the number of elements in the given array
 	@param arr an array of Strings
 */
 void sort_arr(int eles, String* arr) {
-	int i;
-	for (i = 1; i < eles; i++) {
-		int j;
-		for (j = 1; j < eles-1; j++) {
-			if (strcmp(arr[j-1], arr[j]) > 0) {
-				String temp = arr[j-1];
-				arr[j-1] = arr[j];
-				arr[j] = temp;
-			}
-		}
-	}
+	qsort(arr, eles, sizeof(const char*), str_compare);
 }
 
 /**

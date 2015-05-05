@@ -37,8 +37,10 @@ void ls_l(String path);
 	the current directory, the directories within those directories, and so
 	forth.
 	@param path the full path of the directory to examine
+	@param first true if this is the first call to ls_R
+	@param header header to use for printing the directory contents
 */
-void ls_R(String path);
+void ls_R(String path, bool first, String header);
 
 /**
 	Converts the given file permissions to a more readable form
@@ -53,3 +55,10 @@ String getPermissions(mode_t mode);
 	@return the number of files that exist in the given directory
 */
 unsigned long count_files(String path);
+
+/**
+	Counts the number of directories in the given path.
+	@param path the file path to examine
+	@return the number of directories that exist in the given directory
+*/
+unsigned long count_dirs(String path);

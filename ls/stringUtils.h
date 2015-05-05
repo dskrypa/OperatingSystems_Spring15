@@ -8,7 +8,7 @@
 #define STRINGUTILS_H
 
 /**
-	Sorts the given array of Strings in place alphabetically
+	Sorts the given array of Strings in place alphabetically.
 	@param eles the number of elements in the given array
 	@param arr an array of Strings
 */
